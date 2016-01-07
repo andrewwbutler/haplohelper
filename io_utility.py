@@ -2,7 +2,6 @@ import os
 import sys
 import fnmatch
 import csv
-import re
 
 # --------------------------------------------------------------------------------------------
 # General Functions
@@ -150,18 +149,18 @@ def get_pool_info(meta_data):
     return pool_info
 
 
-def build_quality_dict(quality_file, segment):
+def build_quality_dict(quality_file, segment, snps):
     '''
-    For a given quality file and segment, build a quality dictionary with key as position and the
-    value as the minimum accepted quality (mean-1sd)
+    For a given quality file and segment, build a quality dictionary with key as position (index 1) and the
+    value as the minimum accepted quality (mean-1sd).
     '''
     quality_dict = dict()
     with open(quality_file, 'rb') as csvfile:
         reader = csv.reader(csvfile, delimiter=',', quotechar='l')
         next(reader, None)
         for row in reader:
-            if row[1] == segment:
-                quality_dict[row[2]] = float(row[3]) - float(row[4])
+            if row[1] == segment and (int(row[2])+1) in snps:
+                quality_dict[int(row[2])+1] = float(row[3]) - float(row[4])
     return quality_dict
 
 
@@ -195,9 +194,9 @@ def get_segments(samples, segments):
 
 def get_sample_ids(samples_to_compare, meta_data):
     '''
-        Enable user to easily filter which samples to include in the analysis. Can explicitly provide a list
-        or can provide filters (day, generation, exposure status, exposure type) to generate the list of
-        sample IDs that is returned.
+    Enable user to easily filter which samples to include in the analysis. Can explicitly provide a list
+    or can provide filters (day, generation, exposure status, exposure type) to generate the list of
+    sample IDs that is returned.
     '''
     if samples_to_compare.samples:
         return samples_to_compare.samples

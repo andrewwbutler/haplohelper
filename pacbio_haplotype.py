@@ -51,7 +51,7 @@ def find_haplotypes(samples, segments, quality_dir, output_dir):
                     snps = []
                     for snp in sample.snps:
                         if snp[0] == segment:
-                            snps.append(snp[1])
+                            snps.append(int(snp[1]))
                     if segment in sample.read_count_dict:
                         sample.read_count_dict[segment] += 1
                     else:
@@ -64,7 +64,7 @@ def find_haplotypes(samples, segments, quality_dir, output_dir):
                         # check against illumina snp data
                         # check quality against pool quality
                         read_obj = get_read_info(sample, read, segment)
-                        if skip_read(read_obj, segment, segment_length, snps, quality_dir, sample.pool, sample):
+                        if skip_read(read_obj, segment, segment_length, snps, quality_dir, sample):
                             continue
                         sample.reads.append(read_obj)
 
@@ -100,7 +100,7 @@ def find_haplotypes(samples, segments, quality_dir, output_dir):
         for sample in samples:
             segment_length = len(sample.consensus[segment])
             for read in sample.reads:
-                if skip_read(read, segment, segment_length, variant_positions, quality_dir, sample.pool, sample):
+                if skip_read(read, segment, segment_length, variant_positions, quality_dir, sample):
                     sample.reads.remove(read)
 
         for sample in samples:
