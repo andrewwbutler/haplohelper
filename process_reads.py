@@ -36,7 +36,7 @@ class Read(object):
         self.sequence += nt
 
 
-def skip_read(read, min_coverage, segment, segment_length, snps, quality_dir, pool, sample):
+def skip_read(read, segment, segment_length, snps, quality_dir, pool, sample):
     quality_files = get_file_list(quality_dir, ".csv")
     quality_dict = dict()
     for f in quality_files:
@@ -91,12 +91,3 @@ def get_read_info(sample, read, segment):
     # pad the end with Ns as necessary
     read_obj.add_nt("N"*(len(ref_seq)-ref_idx))
     return read_obj
-
-
-def get_segments(samples):
-    segments = []
-    for sample in samples:
-        for segment, sequence in sample.consensus.items():
-            segments.append(segment)
-        break
-    return segments

@@ -74,6 +74,10 @@ def setup_output_dir(output_dir):
 
 
 def get_snps(snplists, sample, bino_filter):
+    '''
+    Return a list of tuples where tuple[0] is the segment ID and tuple[1] is the snp position
+    indexed from 1.
+    '''
     snps = []
     for snplist in snplists:
         if snplist.find(sample) != -1:
@@ -92,6 +96,10 @@ def get_snps(snplists, sample, bino_filter):
 
 
 def get_consensus(consensus_files, sample):
+    '''
+    Return a dictionary to be stored in the Sample object where the key is the segment
+    and the value is the corresponding consensus sequence.
+    '''
     consensus_dict = dict()
     for consensus in consensus_files:
         if consensus.find(sample) != -1:
@@ -99,15 +107,18 @@ def get_consensus(consensus_files, sample):
                 for line in infile:
                     if line[0] == ">":
                         line = line.strip('\n')
-                        sample = line.split(" ")[0][1:]
-                        consensus_dict[sample] = ""
+                        segment = line.split(" ")[0][1:]
+                        consensus_dict[segment] = ""
                     else:
                         line = line.strip('\n')
-                        consensus_dict[sample] += line
+                        consensus_dict[segment] += line
             return consensus_dict
 
 
 def get_ref_info(ref_seq):
+    '''
+    Return a list of all the segments present in the reference sequence.
+    '''
     segments = dict()
     with open(ref_seq, "rU") as infile:
         current_segment = ""
@@ -119,7 +130,7 @@ def get_ref_info(ref_seq):
             else:
                 line = line.strip('\n')
                 segments[current_segment] += line
-    return(segments)
+    return segments
 
 
 def get_pool_info(meta_data):
@@ -154,7 +165,40 @@ def build_quality_dict(quality_file, segment):
     return quality_dict
 
 
+def get_segments(samples, segments):
+    '''
+    For a collection of samples return either a list of segments belonging to every sample
+    or confirm that the list of segments passed are present in every sample.
+    '''
+    if segments[0] == "ALL":
+        segments = []
+        sample1 = samples[0]
+        for segment, sequence in sample1.consensus.items():
+            include = True
+            for sample2 in samples:
+                if segment not in sample2.consensus:
+                    include = False
+            if segment not in segments and include:
+                segments.append(segment)
+    else:
+        for segment in segments:
+            for sample in samples:
+                contains = False
+                for seg, seq in sample.consensus.items():
+                    if seg in segments:
+                        contains = True
+                if not contains:
+                    print "Sample " + sample.id + " does not contain " + segment + ". Removing from segment list."
+                    segments.remove(segment)
+    return segments
+
+
 def get_sample_ids(samples_to_compare, meta_data):
+    '''
+        Enable user to easily filter which samples to include in the analysis. Can explicitly provide a list
+        or can provide filters (day, generation, exposure status, exposure type) to generate the list of
+        sample IDs that is returned.
+    '''
     if samples_to_compare.samples:
         return samples_to_compare.samples
     else:

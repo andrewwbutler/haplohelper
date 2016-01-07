@@ -1,8 +1,6 @@
 import pysam
 import os
 import argparse
-from collections import Counter
-from itertools import chain
 import operator
 from io_utility import *
 from process_reads import *
@@ -15,18 +13,24 @@ import csv
 
 
 def gather_data(pacbio_dir, illumina_dir, consensus_dir, bino_filter, meta_data, samples):
+    '''
+    This function will create a list of Sample objects from the list of sample IDs provided.
+    See process_reads.py for description of Sample objects.
+    '''
     pacbio_bams = get_file_list(pacbio_dir, ".bam")
     illumina_snps = get_file_list(illumina_dir, "snplist.csv")
     consensus_files = get_file_list(consensus_dir, ".fasta")
 
-    # create list of Sample objects
+    # create list of Sample objects from list of IDs given
     sample_list = []
     for bam in pacbio_bams:
         sample_id = "_".join(os.path.basename(bam).split("_")[0:2])
         if sample_id not in samples:
             continue
-
         snps = get_snps(illumina_snps, sample_id, bino_filter)
+        if snps is None:
+                print sample.id + " does not have an associated SNP list, skipping sample"
+                continue
         consensus = get_consensus(consensus_files, sample_id)
         pools = get_pool_info(meta_data)
         for pool, sample in pools.iteritems():
@@ -36,16 +40,11 @@ def gather_data(pacbio_dir, illumina_dir, consensus_dir, bino_filter, meta_data,
     return sample_list
 
 
-def find_haplotypes(samples, min_coverage, quality_dir, output_dir):
-    segments = get_segments(samples)
+def find_haplotypes(samples, segments, quality_dir, output_dir):
     for segment in segments:
-        segment = "HA"
         variant_positions = []
         all_haplotypes = dict()
         for sample in samples:
-            if sample.snps is None:
-                print sample.id + " does not have an associated SNP list, skipping sample"
-                continue
             bf = pysam.AlignmentFile(sample.read_location, "rb")
             for seg, sequence in sample.consensus.items():
                 if seg == segment:
@@ -65,7 +64,7 @@ def find_haplotypes(samples, min_coverage, quality_dir, output_dir):
                         # check against illumina snp data
                         # check quality against pool quality
                         read_obj = get_read_info(sample, read, segment)
-                        if skip_read(read_obj, min_coverage, segment, segment_length, snps, quality_dir, sample.pool, sample):
+                        if skip_read(read_obj, segment, segment_length, snps, quality_dir, sample.pool, sample):
                             continue
                         sample.reads.append(read_obj)
 
@@ -101,7 +100,7 @@ def find_haplotypes(samples, min_coverage, quality_dir, output_dir):
         for sample in samples:
             segment_length = len(sample.consensus[segment])
             for read in sample.reads:
-                if skip_read(read, min_coverage, segment, segment_length, variant_positions, quality_dir, sample.pool, sample):
+                if skip_read(read, segment, segment_length, variant_positions, quality_dir, sample.pool, sample):
                     sample.reads.remove(read)
 
         for sample in samples:
@@ -124,6 +123,7 @@ def include_consensus_changes(samples, segment, variant_positions):
                     variant_positions.append(change)
     return variant_positions
 
+
 def write_haplotypes(sample, segment, haplotypes, variant_positions, output_dir):
     with open(output_dir + "/haplotype_comp.csv", "a") as outfile:
         outfile.write(sample.id + "\n")
@@ -143,13 +143,14 @@ def write_haplotypes(sample, segment, haplotypes, variant_positions, output_dir)
 
         idx = 1
         for haplotype, count in haplotypes:
-            row =["haplotype_"+str(idx)]
+            row = ["haplotype_"+str(idx)]
             idx += 1
             for position in variant_positions:
                 row.append(haplotype[int(position)-1])
             row.append(count)
             row.append(float(count)/total)
             writer.writerow(row)
+
 
 def write_sample_haplotypes(sample, output_dir):
     with open(output_dir + "/haplotypes.txt", 'a') as outfile:
@@ -171,9 +172,6 @@ def main():
     parser.add_argument('barcode_meta_data', type=str, help='path to the file with the pool info')
 
     parser.add_argument('output_dir', type=str, help='path to the directory for the output files')
-
-    parser.add_argument("-c", dest="min_coverage", action="store", default=0.9, type=float,
-                        help='minimum fraction of reference segment that read must cover, default 0.9')
     parser.add_argument("-b", "--bino_filter", dest="bino_filter", action="store_false",
                         help='whether illumina snps must pass the distribution check, default is true')
 
@@ -181,8 +179,8 @@ def main():
     sample_ids = get_sample_ids(config.samples_to_compare, config.sample_meta_data)
     samples = gather_data(config.pacbio_dir, config.illumina_dir, config.consensus_dir, config.bino_filter, config.barcode_meta_data,
                           sample_ids)
-
-    find_haplotypes(samples, config.min_coverage, config.quality_dir, config.output_dir)
+    segments = get_segments(samples, config.segments)
+    find_haplotypes(samples, segments, config.quality_dir, config.output_dir)
 
 if __name__ == "__main__":
     main()
