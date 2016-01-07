@@ -163,6 +163,7 @@ def write_segment_haplotypes(sample, segment, haplotypes, variant_positions, ill
             row.append(count)
             row.append(float(count)/total)
             writer.writerow(row)
+        outfile.write("\n")
 
 
 def write_sample_haplotypes(sample, output_dir):
