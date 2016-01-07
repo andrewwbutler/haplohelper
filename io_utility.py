@@ -216,3 +216,22 @@ def get_sample_ids(samples_to_compare, meta_data):
                     continue
                 samples.append(row[0] + "_" + row[1])
     return samples
+
+
+def get_illumina_snv(illumina_dir, sample, segment, variant_positions):
+    '''
+    Return the snv and frequency from the illumina data for each variant position
+    '''
+    snplists = get_file_list(illumina_dir, ".csv")
+    snv = []
+    frequency = []
+    for snplist in snplists:
+        if snplist.find(sample) != -1:
+            with open(snplist, 'rb') as csvfile:
+                reader = csv.reader(csvfile, delimiter=',', quotechar='|')
+                next(reader, None)
+                for row in reader:
+                    if int(row[2]) in variant_positions and row[1] == segment:
+                        snv.append(row[6])
+                        frequency.append(row[7])
+    return [snv, frequency]

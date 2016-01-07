@@ -114,3 +114,15 @@ def get_read_info(sample, read, segment):
     # pad the end with Ns as necessary
     read_obj.add_nt("N"*(len(ref_seq) - ref_idx))
     return read_obj
+
+
+def get_segment_snps(sample, segment):
+    '''
+    Returns the snps in sample.snp corresponding to a given segment
+    '''
+    snps = []
+    for snp in sample.snps:
+        if snp[0] == segment:
+            snps.append(int(snp[1]))
+    return snps
+
