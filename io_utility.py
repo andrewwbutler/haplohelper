@@ -80,12 +80,12 @@ def get_snps(snplists, sample, bino_filter):
     snps = []
     for snplist in snplists:
         if snplist.find(sample) != -1:
-            with open(snplist, 'rb') as csvfile:
+            with open(snplist, 'rU') as csvfile:
                 reader = csv.reader(csvfile, delimiter=',', quotechar='|')
                 next(reader, None)
                 for row in reader:
                     if bino_filter:
-                        if row[3] == "True":
+                        if row[3] == "TRUE" or row[3] == "True":
                             snp = (row[1], row[2])
                             snps.append(snp)
                     else:
@@ -198,7 +198,7 @@ def get_sample_ids(samples_to_compare, meta_data):
     or can provide filters (day, generation, exposure status, exposure type) to generate the list of
     sample IDs that is returned.
     '''
-    if samples_to_compare.samples:
+    if samples_to_compare.samples and samples_to_compare.samples[0] != "ALL":
         return samples_to_compare.samples
     else:
         samples = []
@@ -215,6 +215,8 @@ def get_sample_ids(samples_to_compare, meta_data):
                 if row[12] not in samples_to_compare.prev_exposure_binary and samples_to_compare.prev_exposure_binary:
                     continue
                 samples.append(row[0] + "_" + row[1])
+    if samples_to_compare.samples[0] == "ALL":
+        samples.append("StockCal09")
     return samples
 
 
@@ -227,7 +229,7 @@ def get_illumina_snv(illumina_dir, sample, segment, variant_positions):
     frequency = []
     for snplist in snplists:
         if snplist.find(sample) != -1:
-            with open(snplist, 'rb') as csvfile:
+            with open(snplist, 'rU') as csvfile:
                 reader = csv.reader(csvfile, delimiter=',', quotechar='|')
                 next(reader, None)
                 for row in reader:

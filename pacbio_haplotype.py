@@ -20,17 +20,19 @@ def gather_data(pacbio_dir, illumina_dir, consensus_dir, bino_filter, meta_data,
     pacbio_bams = get_file_list(pacbio_dir, ".bam")
     illumina_snps = get_file_list(illumina_dir, "snplist.csv")
     consensus_files = get_file_list(consensus_dir, ".fasta")
-
     # create list of Sample objects from list of IDs given
     sample_list = []
     for bam in pacbio_bams:
         sample_id = "_".join(os.path.basename(bam).split("_")[0:2])
+        sample_id = sample_id.split(".")[0]
+        if sample_id.split("_")[1] == "A":
+            sample_id = sample_id.split("_")[0]
         if sample_id not in samples:
             continue
         snps = get_snps(illumina_snps, sample_id, bino_filter)
         if snps is None:
-                print sample.id + " does not have an associated SNP list, skipping sample"
-                continue
+            print sample_id + " does not have an associated SNP list, skipping sample"
+            continue
         consensus = get_consensus(consensus_files, sample_id)
         pools = get_pool_info(meta_data)
         for pool, sample in pools.iteritems():
@@ -48,6 +50,7 @@ def find_haplotypes(samples, segments, quality_dir, illumina_dir, output_dir):
         variant_positions = []
         all_haplotypes = dict()
         for sample in samples:
+            print "Processing " + sample.id
             sequence = sample.consensus[segment]
             snps = get_segment_snps(sample, segment)
             segment_length = len(sequence)
@@ -84,7 +87,7 @@ def find_haplotypes(samples, segments, quality_dir, illumina_dir, output_dir):
             # write_sample_haplotypes(sorted_haplotypes, output_dir)
             all_haplotypes[sample.id] = sorted_haplotypes
 
-        variant_positions = include_consensus_changes(samples, segment, variant_positions, snps)
+        variant_positions = include_consensus_changes(samples, segment, variant_positions)
         variant_positions = sorted(variant_positions)
 
         # recheck reads so that they cover all variant positions
@@ -100,6 +103,8 @@ def find_haplotypes(samples, segments, quality_dir, illumina_dir, output_dir):
             else:
                 print sample.id + " doesn't contain any reads that pass the filters"
 
+        rank_haplotypes(segment, output_dir, variant_positions)
+
 
 def count_haplotypes(haplotypes):
     '''
@@ -108,24 +113,64 @@ def count_haplotypes(haplotypes):
     '''
     total = 0
     for haplotype, count in haplotypes:
-        total += count
+        total += int(count)
     return total
 
 
-def include_consensus_changes(samples, segment, variant_positions, snps):
+def include_consensus_changes(samples, segment, variant_positions):
     '''
     Includes positions that are different between the consensus sequences of the samples
     in the variant_position list
     '''
     for sample1 in samples:
         s1 = sample1.consensus[segment]
+        snps1 = get_segment_snps(sample1, segment)
         for sample2 in samples:
+            snps2 = get_segment_snps(sample2, segment)
             s2 = sample2.consensus[segment]
             changes = [i for i in xrange(len(s1)) if s1[i] != s2[i]]
             for change in changes:
-                if change not in variant_positions and change in snps:
+                if change not in variant_positions and (change in snps1 or change in snps2):
                     variant_positions.append(change)
     return variant_positions
+
+
+def rank_haplotypes(segment, output_dir, variant_positions):
+    with open(output_dir + "/" + segment + "_haplotype_comp.csv", 'rb') as csvfile:
+        reader = csv.reader(csvfile, delimiter=',', quotechar='|')
+        haplotypes = dict()
+        for row in reader:
+            if len(row) != 0 and row[0].find("haplotype") != -1:
+                haplotype = ""
+                for i in xrange(1, len(variant_positions)+1):
+                    haplotype += row[i]
+                if haplotype in haplotypes:
+                    haplotypes[haplotype] += int(row[len(variant_positions) + 1])
+                else:
+                    haplotypes[haplotype] = int(row[len(variant_positions) + 1])
+
+        sorted_haplotypes = sorted(haplotypes.items(), key=operator.itemgetter(1), reverse=True)
+
+    with open(output_dir + "/" + segment + "_ranked_haplotypes.csv", "w") as outfile:
+        writer = csv.writer(outfile, delimiter=",")
+        variant_positions.insert(0, "variant position")
+        variant_positions.append("count")
+        variant_positions.append("frequency")
+        writer.writerow(variant_positions)
+        del variant_positions[0]
+        del variant_positions[len(variant_positions) - 1]
+        del variant_positions[len(variant_positions) - 1]
+
+        total = count_haplotypes(sorted_haplotypes)
+        idx = 1
+        for haplotype in sorted_haplotypes:
+            seq = ["haplotype_" + str(idx)]
+            idx += 1
+            for i in xrange(0, len(haplotype[0])):
+                seq.append(haplotype[0][i])
+            seq.append(haplotype[1])
+            seq.append(str(float(haplotype[1])/total))
+            writer.writerow(seq)
 
 
 def write_segment_haplotypes(sample, segment, haplotypes, variant_positions, illumina_dir, output_dir):
