@@ -198,14 +198,21 @@ def get_sample_ids(samples_to_compare, meta_data):
     or can provide filters (day, generation, exposure status, exposure type) to generate the list of
     sample IDs that is returned.
     '''
-    if samples_to_compare.samples and samples_to_compare.samples[0] != "ALL":
+    if samples_to_compare.samples and samples_to_compare.samples[0] != "ALL" and samples_to_compare.samples[0].find("_") != -1:
         return samples_to_compare.samples
     else:
         samples = []
+        sample_names = []
+        if samples_to_compare.samples:
+            for sample in samples_to_compare.samples:
+                sample_names.append(sample.split("_")[0])
+
         with open(meta_data, 'rU') as csvfile:
             reader = csv.reader(csvfile, delimiter=',', quotechar='|')
             next(reader, None)
             for row in reader:
+                if row[0] not in sample_names and sample_names:
+                    continue
                 if int(row[1]) not in samples_to_compare.days and samples_to_compare.days:
                     continue
                 if row[5] not in samples_to_compare.generation and samples_to_compare.generation:

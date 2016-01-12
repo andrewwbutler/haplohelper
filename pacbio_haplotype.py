@@ -97,6 +97,10 @@ def find_haplotypes(samples, segments, quality_dir, illumina_dir, output_dir):
                 if skip_read(read, segment, segment_length, variant_positions, quality_dir, sample):
                     sample.reads.remove(read)
 
+        with open(output_dir + "/" + segment + "_tidy_haplotypes.csv", "w") as outfile:
+            writer = csv.writer(outfile, delimiter=",")
+            writer.writerow(["sample", "day", "segment", "haplotype", "count", "freq"])
+
         for sample in samples:
             if len(sample.reads) > 0:
                 write_segment_haplotypes(sample, segment, all_haplotypes[sample.id], variant_positions, illumina_dir, output_dir)
@@ -209,6 +213,24 @@ def write_segment_haplotypes(sample, segment, haplotypes, variant_positions, ill
             row.append(float(count)/total)
             writer.writerow(row)
         outfile.write("\n")
+
+    with open(output_dir + "/" + segment + "_tidy_haplotypes.csv", "a") as outfile:
+        writer = csv.writer(outfile, delimiter=",")
+        # make exception for stock
+        writer = csv.writer(outfile, delimiter=",")
+        sample_name = sample.id.split("_")[0]
+        day = sample.id.split("_")[1]
+        total = count_haplotypes(haplotypes)
+        for haplotype, count in haplotypes:
+            sequence = ""
+            for position in variant_positions:
+                if sequence != "":
+                    sequence += ", " + haplotype[int(position) - 1] + " - " + str(position)
+                else:
+                    sequence += haplotype[int(position) - 1] + " - " + str(position)
+
+            freq = float(count)/total
+            writer.writerow([sample_name, day, segment, sequence, count, freq])
 
 
 def write_sample_haplotypes(sample, output_dir):

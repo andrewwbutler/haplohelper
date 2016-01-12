@@ -25,7 +25,7 @@ bino_filter = True
 ### Samples of interest
 class Sample_Specs(object):
     def __init__(self):
-        self.samples = ["ALL"]
+        self.samples = ["526"]
         self.generation = []
         self.days = []
         self.prev_exposure_specific = []
