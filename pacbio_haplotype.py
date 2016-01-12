@@ -12,7 +12,7 @@ import csv
 # ---------------------------------------------------------------------------------------------
 
 
-def gather_data(pacbio_dir, illumina_dir, consensus_dir, bino_filter, meta_data, samples):
+def gather_data(pacbio_dir, illumina_dir, consensus_dir, bino_filter, meta_data, samples, min_snp_freq):
     '''
     This function will create a list of Sample objects from the list of sample IDs provided.
     See process_reads.py for description of Sample objects.
@@ -29,7 +29,7 @@ def gather_data(pacbio_dir, illumina_dir, consensus_dir, bino_filter, meta_data,
             sample_id = sample_id.split("_")[0]
         if sample_id not in samples:
             continue
-        snps = get_snps(illumina_snps, sample_id, bino_filter)
+        snps = get_snps(illumina_snps, sample_id, bino_filter, min_snp_freq)
         if snps is None:
             print sample_id + " does not have an associated SNP list, skipping sample"
             continue
@@ -269,7 +269,7 @@ def main():
     setup_output_dir(config.output_dir)
     sample_ids = get_sample_ids(config.samples_to_compare, config.sample_meta_data)
     samples = gather_data(config.pacbio_dir, config.illumina_dir, config.consensus_dir, config.bino_filter, config.barcode_meta_data,
-                          sample_ids)
+                          sample_ids, config.min_snp_freq)
     segments = get_segments(samples, config.segments)
     find_haplotypes(samples, segments, config.quality_dir, config.illumina_dir, config.output_dir)
 

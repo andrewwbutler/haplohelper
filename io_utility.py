@@ -72,7 +72,7 @@ def setup_output_dir(output_dir):
 # --------------------------------------------------------------------------------------------
 
 
-def get_snps(snplists, sample, bino_filter):
+def get_snps(snplists, sample, bino_filter, min_freq):
     '''
     Return a list of tuples where tuple[0] is the segment ID and tuple[1] is the snp position
     indexed from 1.
@@ -84,6 +84,8 @@ def get_snps(snplists, sample, bino_filter):
                 reader = csv.reader(csvfile, delimiter=',', quotechar='|')
                 next(reader, None)
                 for row in reader:
+                    if float(row[7]) < min_freq:
+                        continue
                     if bino_filter:
                         if row[3] == "TRUE" or row[3] == "True":
                             snp = (row[1], row[2])

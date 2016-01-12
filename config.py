@@ -20,6 +20,7 @@ segments = ["HA"]
 # whether to include snps from the illumina data that don't pass the bino filter
 # True -> don't include snps that don't pass
 bino_filter = True
+min_snp_freq = 0.01
 
 
 ### Samples of interest
