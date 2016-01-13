@@ -200,12 +200,12 @@ def get_sample_ids(samples_to_compare, meta_data):
     or can provide filters (day, generation, exposure status, exposure type) to generate the list of
     sample IDs that is returned.
     '''
-    if samples_to_compare.samples and samples_to_compare.samples[0] != "ALL" and samples_to_compare.samples[0].find("_") != -1:
+    if samples_to_compare.samples and samples_to_compare.samples[0] != "ALL" and "_" in samples_to_compare.samples[0]:
         return samples_to_compare.samples
     else:
         samples = []
         sample_names = []
-        if samples_to_compare.samples:
+        if samples_to_compare.samples and samples_to_compare.samples[0] != "ALL":
             for sample in samples_to_compare.samples:
                 sample_names.append(sample.split("_")[0])
 
@@ -236,6 +236,8 @@ def get_illumina_snv(illumina_dir, sample, segment, variant_positions):
     snplists = get_file_list(illumina_dir, ".csv")
     snv = []
     frequency = []
+    major = []
+    major_freq = []
     for snplist in snplists:
         if snplist.find(sample) != -1:
             with open(snplist, 'rU') as csvfile:
@@ -245,4 +247,6 @@ def get_illumina_snv(illumina_dir, sample, segment, variant_positions):
                     if int(row[2]) in variant_positions and row[1] == segment:
                         snv.append(row[6])
                         frequency.append(row[7])
-    return [snv, frequency]
+                        major.append(row[4])
+                        major_freq.append(row[5])
+    return [snv, frequency, major, major_freq]

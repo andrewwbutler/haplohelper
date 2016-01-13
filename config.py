@@ -26,7 +26,7 @@ min_snp_freq = 0.01
 ### Samples of interest
 class Sample_Specs(object):
     def __init__(self):
-        self.samples = ["526"]
+        self.samples = ["526", "527", "528"]
         self.generation = []
         self.days = []
         self.prev_exposure_specific = []

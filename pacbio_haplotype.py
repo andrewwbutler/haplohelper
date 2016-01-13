@@ -101,13 +101,21 @@ def find_haplotypes(samples, segments, quality_dir, illumina_dir, output_dir):
             writer = csv.writer(outfile, delimiter=",")
             writer.writerow(["sample", "day", "segment", "haplotype", "count", "freq"])
 
+        with open(output_dir + "/" + segment + "_illumina_minor_variants.csv", "w") as outfile:
+            writer = csv.writer(outfile, delimiter=",")
+            writer.writerow(["sample", "day", "segment", "position", "nt", "freq"])
+
+        sample_names = []
         for sample in samples:
+            if sample.id.split("_")[0] not in sample_names:
+                sample_names.append(sample.id.split("_")[0])
             if len(sample.reads) > 0:
                 write_segment_haplotypes(sample, segment, all_haplotypes[sample.id], variant_positions, illumina_dir, output_dir)
             else:
                 print sample.id + " doesn't contain any reads that pass the filters"
 
         rank_haplotypes(segment, output_dir, variant_positions)
+        check_for_takeover(output_dir, segment, samples, sample_names, all_haplotypes, variant_positions, illumina_dir)
 
 
 def count_haplotypes(haplotypes):
@@ -140,6 +148,9 @@ def include_consensus_changes(samples, segment, variant_positions):
 
 
 def rank_haplotypes(segment, output_dir, variant_positions):
+    '''
+    Write a ranked list of all the haplotypes present in all the samples provided
+    '''
     with open(output_dir + "/" + segment + "_haplotype_comp.csv", 'rb') as csvfile:
         reader = csv.reader(csvfile, delimiter=',', quotechar='|')
         haplotypes = dict()
@@ -175,6 +186,38 @@ def rank_haplotypes(segment, output_dir, variant_positions):
             seq.append(haplotype[1])
             seq.append(str(float(haplotype[1])/total))
             writer.writerow(seq)
+
+
+def check_for_takeover(output_dir, segment, samples, sample_names, all_haplotypes, variant_positions, illumina_dir):
+    '''
+    Within a given sample (multiple days), check if there is a change in the major haplotype and whether the positions that change
+    are confirmed in the illumina data.
+    '''
+    for name in sample_names:
+        major_hap = ""
+        for sample in samples:
+            if not all_haplotypes[sample.id]:
+                continue
+            if sample.id.split("_")[0] == name:
+                hap = ""
+                for position in variant_positions:
+                    hap += all_haplotypes[sample.id][0][0][int(position) - 1]
+                illumina_hap = "".join(get_illumina_snv(illumina_dir, sample.id, segment, variant_positions)[2])
+                if major_hap == "":
+                    major_hap = hap
+                elif major_hap != hap:
+                    if hap == illumina_hap:
+                        with open(output_dir + "/" + segment + "_haplotype_changes.txt", "a") as outfile:
+                            outfile.write("Sample " + sample.id + " major haplotype changed from " + major_hap + " to " + hap +
+                                          "---- confirmed by illumina" + "\n")
+
+                    else:
+                        with open(output_dir + "/" + segment + "_haplotype_changes.txt", "a") as outfile:
+                            outfile.write("Sample " + sample.id + " major haplotype changed from " + major_hap + " to " + hap +
+                                          "---- NOT confirmed by illumina" + "\n")
+                    major_hap = hap
+                else:
+                    continue
 
 
 def write_segment_haplotypes(sample, segment, haplotypes, variant_positions, illumina_dir, output_dir):
@@ -216,10 +259,11 @@ def write_segment_haplotypes(sample, segment, haplotypes, variant_positions, ill
 
     with open(output_dir + "/" + segment + "_tidy_haplotypes.csv", "a") as outfile:
         writer = csv.writer(outfile, delimiter=",")
-        # make exception for stock
-        writer = csv.writer(outfile, delimiter=",")
         sample_name = sample.id.split("_")[0]
-        day = sample.id.split("_")[1]
+        if "Stock" in sample_name:
+            day = "NA"
+        else:
+            day = sample.id.split("_")[1]
         total = count_haplotypes(haplotypes)
         for haplotype, count in haplotypes:
             sequence = ""
@@ -232,6 +276,18 @@ def write_segment_haplotypes(sample, segment, haplotypes, variant_positions, ill
             freq = float(count)/total
             writer.writerow([sample_name, day, segment, sequence, count, freq])
 
+    with open(output_dir + "/" + segment + "_illumina_minor_variants.csv", "a") as outfile:
+        writer = csv.writer(outfile, delimiter=",")
+        if "Stock" in sample_name:
+            day = "NA"
+        else:
+            day = sample.id.split("_")[1]
+        sample_name = sample.id.split("_")[0]
+        snvs = get_illumina_snv(illumina_dir, sample.id, segment, variant_positions)
+        for i in xrange(0, len(snvs[0])):
+            writer.writerow([sample_name, day, segment, variant_positions[i], snvs[0][i], snvs[1][i]])
+            writer.writerow([sample_name, day, segment, variant_positions[i], snvs[2][i], snvs[3][i]])
+
 
 def write_sample_haplotypes(sample, output_dir):
     '''
@@ -243,6 +299,8 @@ def write_sample_haplotypes(sample, output_dir):
             x += 1
             outfile.write(">" + sample.id + "_" + str(x) + " " + str(haplotype[1]) + " " + str(float(haplotype[1])/total) + "\n")
             outfile.write(haplotype[0] + "\n")
+
+
 
 
 def main():
