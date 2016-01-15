@@ -28,6 +28,8 @@ class Read(object):
         self.start_position = 0
         self.end_position = 0
         self.query_qualities = []
+        self.query_sequence = ""
+        self.positions =[]
 
     def add_mutation(self, position, nt):
         self.mutations[position] = nt
@@ -71,10 +73,8 @@ def read_contains_snps(read, segment, snplist, quality_dict, sample):
     '''
     Performs the check to ensure that the read spans the first snp to the last
     '''
-    start = read.start_position
-    end = read.end_position
     for snp in snplist:
-        if int(snp) < start + 1 or int(snp) > end + 1:
+        if int(snp)+1 not in read.positions:
             sample.num_short_reads += 1
             return False
     return True
@@ -89,6 +89,8 @@ def get_read_info(sample, read, segment):
     read_obj.start_position = read.get_reference_positions()[0]
     read_obj.end_position = read.get_reference_positions()[-1]
     read_obj.query_qualities = read.query_qualities
+    read_obj.positions = read.get_reference_positions()
+
     sequence_idx = 0
     ref_idx = read.get_reference_positions()[0]
     ref_seq = sample.consensus[segment]
@@ -125,4 +127,3 @@ def get_segment_snps(sample, segment):
         if snp[0] == segment:
             snps.append(int(snp[1]))
     return snps
-

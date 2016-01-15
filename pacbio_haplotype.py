@@ -101,6 +101,10 @@ def find_haplotypes(samples, segments, quality_dir, illumina_dir, output_dir):
             writer = csv.writer(outfile, delimiter=",")
             writer.writerow(["sample", "day", "segment", "haplotype", "count", "freq"])
 
+        with open(output_dir + "/" + segment + "_tidier_haplotypes.csv", "w") as outfile:
+            writer = csv.writer(outfile, delimiter=",")
+            writer.writerow(["sample", "day", "segment", "haplotype", "count", "freq", "variant_position", "nt"])
+
         with open(output_dir + "/" + segment + "_illumina_minor_variants.csv", "w") as outfile:
             writer = csv.writer(outfile, delimiter=",")
             writer.writerow(["sample", "day", "segment", "position", "nt", "freq"])
@@ -171,7 +175,8 @@ def rank_haplotypes(segment, output_dir, variant_positions):
         variant_positions.insert(0, "variant position")
         variant_positions.append("count")
         variant_positions.append("frequency")
-        writer.writerow(variant_positions)
+        #writer.writerow(variant_positions)
+        writer.writerow(["rank", "haplotype", "count", "frequency"])
         del variant_positions[0]
         del variant_positions[len(variant_positions) - 1]
         del variant_positions[len(variant_positions) - 1]
@@ -179,12 +184,15 @@ def rank_haplotypes(segment, output_dir, variant_positions):
         total = count_haplotypes(sorted_haplotypes)
         idx = 1
         for haplotype in sorted_haplotypes:
-            seq = ["haplotype_" + str(idx)]
+            seq = [str(idx)]
             idx += 1
+            hap_seq = ""
             for i in xrange(0, len(haplotype[0])):
-                seq.append(haplotype[0][i])
+                hap_seq += haplotype[0][i]
+            seq.append(hap_seq)
             seq.append(haplotype[1])
             seq.append(str(float(haplotype[1])/total))
+            seq.append(variant_positions)
             writer.writerow(seq)
 
 
@@ -272,9 +280,28 @@ def write_segment_haplotypes(sample, segment, haplotypes, variant_positions, ill
                     sequence += ", " + haplotype[int(position) - 1] + " - " + str(position)
                 else:
                     sequence += haplotype[int(position) - 1] + " - " + str(position)
-
             freq = float(count)/total
             writer.writerow([sample_name, day, segment, sequence, count, freq])
+
+    with open(output_dir + "/" + segment + "_tidier_haplotypes.csv", "a") as outfile:
+        writer = csv.writer(outfile, delimiter=",")
+        sample_name = sample.id.split("_")[0]
+        if "Stock" in sample_name:
+            day = "NA"
+        else:
+            day = sample.id.split("_")[1]
+        total = count_haplotypes(haplotypes)
+        idx = 0
+        for haplotype, count in haplotypes:
+            idx += 1
+            hap = ""
+            for position in variant_positions:
+                hap += haplotype[int(position) - 1]
+            for position in variant_positions:
+                nt = haplotype[int(position) - 1]
+                freq = float(count)/total
+                writer.writerow([sample_name, day, segment, hap, count, freq, position, nt])
+
 
     with open(output_dir + "/" + segment + "_illumina_minor_variants.csv", "a") as outfile:
         writer = csv.writer(outfile, delimiter=",")
@@ -299,8 +326,6 @@ def write_sample_haplotypes(sample, output_dir):
             x += 1
             outfile.write(">" + sample.id + "_" + str(x) + " " + str(haplotype[1]) + " " + str(float(haplotype[1])/total) + "\n")
             outfile.write(haplotype[0] + "\n")
-
-
 
 
 def main():

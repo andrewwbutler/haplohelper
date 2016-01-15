@@ -48,7 +48,6 @@ def write_output(name, segment, quality_dict, output_dir):
                 writer.writerow([name, segment, position, avg, std, n])
 
 
-
 def main():
     parser = argparse.ArgumentParser(description=("asdasdasd"))
 
@@ -56,7 +55,6 @@ def main():
     parser.add_argument('ref_seq', type=str, help='path to reference sequence used in mapping')
     parser.add_argument('meta_data', type=str, help='path to the file with the pool info'),
     parser.add_argument('output_dir', type=str, help='path to the directory for the output files')
-
 
     if len(sys.argv) <= 3 or len(sys.argv) > 5:
         parser.print_help()

@@ -62,7 +62,7 @@ def setup_output_dir(output_dir):
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     else:
-        query_yes_no("Warning: Directory exists. All files within will be deleted. Continue?")
+        #query_yes_no("Warning: Directory exists. All files within will be deleted. Continue?")
         fileList = os.listdir(output_dir)
         for fileName in fileList:
             os.remove(output_dir+"/"+fileName)
@@ -224,7 +224,7 @@ def get_sample_ids(samples_to_compare, meta_data):
                 if row[12] not in samples_to_compare.prev_exposure_binary and samples_to_compare.prev_exposure_binary:
                     continue
                 samples.append(row[0] + "_" + row[1])
-    if samples_to_compare.samples[0] == "ALL":
+    if samples_to_compare.samples and samples_to_compare.samples[0] == "ALL":
         samples.append("StockCal09")
     return samples
 
@@ -250,3 +250,25 @@ def get_illumina_snv(illumina_dir, sample, segment, variant_positions):
                         major.append(row[4])
                         major_freq.append(row[5])
     return [snv, frequency, major, major_freq]
+
+
+def get_transmission_pairs(meta_data, pb_meta_data):
+    '''
+    Returns a dictionary of all the f0/f1 pairs with f0 as the key, f1 as value
+    '''
+    samples = []
+    with open(pb_meta_data, 'rU') as csvfile:
+        reader = csv.reader(csvfile, delimiter=',', quotechar='|')
+        next(reader, None)
+        for row in reader:
+            if row[0].split("_")[0] not in samples:
+                samples.append(row[0].split("_")[0])
+
+    pairs = dict()
+    with open(meta_data, 'rU') as csvfile:
+        reader = csv.reader(csvfile, delimiter=',', quotechar='|')
+        next(reader, None)
+        for row in reader:
+            if row[5] == "F0" and row[0] in samples:
+                pairs[row[0]] = row[7]
+    return pairs
