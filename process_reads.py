@@ -6,9 +6,10 @@ from io_utility import *
 
 
 class Sample(object):
-    def __init__(self, sample_id, read_location, consensus, snps, pool):
+    def __init__(self, sample_id, read_location, illumina_location, consensus, snps, pool):
         self.id = sample_id
         self.read_location = read_location
+        self.illumina_location = illumina_location
         self.consensus = consensus
         self.snps = snps
         self.reads = []
@@ -16,6 +17,7 @@ class Sample(object):
         self.pool = pool
         self.num_low_quality_reads = 0
         self.num_short_reads = 0
+
 
     def add_read(self, read):
         self.reads.append(read)
@@ -29,7 +31,8 @@ class Read(object):
         self.end_position = 0
         self.query_qualities = []
         self.query_sequence = ""
-        self.positions =[]
+        self.positions = []
+        self.poi_spanned= []
 
     def add_mutation(self, position, nt):
         self.mutations[position] = nt
@@ -45,12 +48,12 @@ def skip_read(read, segment, segment_length, snps, quality_dir, sample):
     '''
     quality_files = get_file_list(quality_dir, ".csv")
     quality_dict = dict()
+    if not read_contains_snps(read, segment, snps, sample):
+        return True
     for f in quality_files:
         if os.path.basename(f)[0] == sample.pool:
             quality_dict = build_quality_dict(f, segment, snps)
             break
-    if not read_contains_snps(read, segment, snps, quality_dict, sample):
-        return True
     if not pass_quality_check(read, snps, quality_dict, sample):
         return True
     return False
@@ -69,7 +72,7 @@ def pass_quality_check(read, snplist, quality_dict, sample):
     return True
 
 
-def read_contains_snps(read, segment, snplist, quality_dict, sample):
+def read_contains_snps(read, segment, snplist, sample):
     '''
     Performs the check to ensure that the read spans the first snp to the last
     '''
@@ -127,3 +130,18 @@ def get_segment_snps(sample, segment):
         if snp[0] == segment:
             snps.append(int(snp[1]))
     return snps
+
+
+def illumina_filter(read, min_quality, variant_positions):
+    '''
+    Returns false if filters aren't passed
+    '''
+    for position in variant_positions:
+        if position >= read.start_position and position <= read.end_position:
+            read.poi_spanned.append(position)
+    if not poi_spanned:
+        return False
+    for position in read.poi_spanned:
+        if read.query_qualities[int(position) - 1 - read.start_position] <= min_quality:
+            return False
+    return True

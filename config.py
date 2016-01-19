@@ -5,6 +5,7 @@
 
 pacbio_dir = "/Users/abutler/Projects/flu_project/pacbio_sorted_bam/"
 illumina_dir = "/Users/abutler/Projects/flu_project/illumina_snplists/"
+illumina_bam_dir = "/Users/abutler/Projects/flu_project/illumina_sorted_bam/"
 consensus_dir = "/Users/abutler/Projects/flu_project/consensus/consensus_reformat/"
 quality_dir = "/Users/abutler/Projects/flu_project/pacbio_quality/pool_quality/"
 barcode_meta_data = "/Users/abutler/Projects/flu_project/pacbio_metadata_fixed.csv"
@@ -21,12 +22,14 @@ segments = ["HA"]
 # True -> don't include snps that don't pass
 bino_filter = True
 min_snp_freq = 0.01
+# minimum allowed Illumina phred quality
+min_quality = 20
 
 
 ### Samples of interest
 class Sample_Specs(object):
     def __init__(self):
-        self.samples = ["Gr5-3D", "Gr5-3C"]
+        self.samples = ["526_1"]
         self.generation = []
         self.days = []
         self.prev_exposure_specific = []

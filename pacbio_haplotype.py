@@ -4,6 +4,7 @@ import argparse
 import operator
 from io_utility import *
 from process_reads import *
+from illumina_utility import *
 import config
 import csv
 
@@ -12,7 +13,7 @@ import csv
 # ---------------------------------------------------------------------------------------------
 
 
-def gather_data(pacbio_dir, illumina_dir, consensus_dir, bino_filter, meta_data, samples, min_snp_freq):
+def gather_data(pacbio_dir, illumina_dir, illumina_bam_dir, consensus_dir, bino_filter, meta_data, samples, min_snp_freq):
     '''
     This function will create a list of Sample objects from the list of sample IDs provided.
     See process_reads.py for description of Sample objects.
@@ -35,14 +36,15 @@ def gather_data(pacbio_dir, illumina_dir, consensus_dir, bino_filter, meta_data,
             continue
         consensus = get_consensus(consensus_files, sample_id)
         pools = get_pool_info(meta_data)
+        illumina_location = get_illumina_location(illumina_bam_dir, sample_id)
         for pool, sample in pools.iteritems():
             if sample_id in sample:
                 sample_pool = pool
-        sample_list.append(Sample(sample_id, bam, consensus, snps, sample_pool))
+        sample_list.append(Sample(sample_id, bam, illumina_location, consensus, snps, sample_pool))
     return sample_list
 
 
-def find_haplotypes(samples, segments, quality_dir, illumina_dir, output_dir):
+def find_haplotypes(samples, segments, quality_dir, illumina_dir, min_quality, output_dir):
     '''
     Main function for determining haplotypes
     '''
@@ -92,6 +94,7 @@ def find_haplotypes(samples, segments, quality_dir, illumina_dir, output_dir):
 
         # recheck reads so that they cover all variant positions
         for sample in samples:
+            illumina_haplotype(sample, variant_positions, segment, min_quality, output_dir)
             segment_length = len(sample.consensus[segment])
             for read in sample.reads:
                 if skip_read(read, segment, segment_length, variant_positions, quality_dir, sample):
@@ -302,7 +305,6 @@ def write_segment_haplotypes(sample, segment, haplotypes, variant_positions, ill
                 freq = float(count)/total
                 writer.writerow([sample_name, day, segment, hap, count, freq, position, nt])
 
-
     with open(output_dir + "/" + segment + "_illumina_minor_variants.csv", "a") as outfile:
         writer = csv.writer(outfile, delimiter=",")
         if "Stock" in sample_name:
@@ -351,10 +353,9 @@ def main():
 
     setup_output_dir(config.output_dir)
     sample_ids = get_sample_ids(config.samples_to_compare, config.sample_meta_data)
-    samples = gather_data(config.pacbio_dir, config.illumina_dir, config.consensus_dir, config.bino_filter, config.barcode_meta_data,
-                          sample_ids, config.min_snp_freq)
+    samples = gather_data(config.pacbio_dir, config.illumina_dir, config.illumina_bam_dir, config.consensus_dir, config.bino_filter, config.barcode_meta_data, sample_ids, config.min_snp_freq)
     segments = get_segments(samples, config.segments)
-    find_haplotypes(samples, segments, config.quality_dir, config.illumina_dir, config.output_dir)
+    find_haplotypes(samples, segments, config.quality_dir, config.illumina_dir, config.min_quality, config.output_dir)
 
 if __name__ == "__main__":
     main()

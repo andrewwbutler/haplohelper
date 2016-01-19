@@ -272,3 +272,12 @@ def get_transmission_pairs(meta_data, pb_meta_data):
             if row[5] == "F0" and row[0] in samples:
                 pairs[row[0]] = row[7]
     return pairs
+
+
+def get_illumina_location(illumina_dir, sample_id):
+    bams = get_file_list(illumina_dir, ".bam")
+    for bam in bams:
+        illumina_sample_id = "_".join(os.path.basename(bam).split("_")[0:2])
+        illumina_sample_id = illumina_sample_id.split(".")[0]
+        if illumina_sample_id == sample_id:
+            return bam
