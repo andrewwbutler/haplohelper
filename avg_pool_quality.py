@@ -49,7 +49,7 @@ def write_output(name, segment, quality_dict, output_dir):
 
 
 def main():
-    parser = argparse.ArgumentParser(description=("asdasdasd"))
+    parser = argparse.ArgumentParser(description=("Calculates the average pool quality"))
 
     parser.add_argument('pacbio_dir', type=str, help='path to the directory with the pacbio BAM files')
     parser.add_argument('ref_seq', type=str, help='path to reference sequence used in mapping')
