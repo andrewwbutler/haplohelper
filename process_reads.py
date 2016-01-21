@@ -30,9 +30,8 @@ class Read(object):
         self.start_position = 0
         self.end_position = 0
         self.query_qualities = []
-        self.query_sequence = ""
         self.positions = []
-        self.poi_spanned= []
+        self.poi_spanned = []
 
     def add_mutation(self, position, nt):
         self.mutations[position] = nt
@@ -66,7 +65,7 @@ def pass_quality_check(read, snplist, quality_dict, sample):
     '''
     start = read.start_position
     for snp in snplist:
-        if read.query_qualities[int(snp) - 1 - start] < quality_dict[int(snp)]:
+        if int(snp) - 1 in read.positions and read.query_qualities[read.positions.index(int(snp)-1)] < quality_dict[int(snp)]:
             sample.num_low_quality_reads += 1
             return False
     return True
@@ -89,14 +88,17 @@ def get_read_info(sample, read, segment):
     from the consensus.
     '''
     read_obj = Read()
-    read_obj.start_position = read.get_reference_positions()[0]
-    read_obj.end_position = read.get_reference_positions()[-1]
+    read_obj.start_position = read.get_reference_positions()[0] + 1
+    read_obj.end_position = read.get_reference_positions()[-1] + 1
     read_obj.query_qualities = read.query_qualities
     read_obj.positions = read.get_reference_positions()
 
     sequence_idx = 0
     ref_idx = read.get_reference_positions()[0]
     ref_seq = sample.consensus[segment]
+
+    # pad the beginning with Ns as necessary
+    read_obj.add_nt("N" * ref_idx)
 
     for t in read.cigartuples:
         if t[0] == 0:
@@ -139,9 +141,9 @@ def illumina_filter(read, min_quality, variant_positions):
     for position in variant_positions:
         if position >= read.start_position and position <= read.end_position:
             read.poi_spanned.append(position)
-    if not poi_spanned:
+    if not read.poi_spanned:
         return False
     for position in read.poi_spanned:
-        if read.query_qualities[int(position) - 1 - read.start_position] <= min_quality:
+        if int(position) - 1 in read.positions and read.query_qualities[read.positions.index(int(position)-1)] <= min_quality:
             return False
     return True

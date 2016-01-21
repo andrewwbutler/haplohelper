@@ -92,9 +92,15 @@ def find_haplotypes(samples, segments, quality_dir, illumina_dir, min_quality, o
         variant_positions = include_consensus_changes(samples, segment, variant_positions)
         variant_positions = sorted(variant_positions)
 
+
+        with open(output_dir + "/" + segment + "_illumina_linkage_info.csv", "w") as outfile:
+            writer = csv.writer(outfile, delimiter=",")
+            writer.writerow(["sample", "day", "segment", "haplotype", "count", "freq", "variant_position", "nt"])
+
+
         # recheck reads so that they cover all variant positions
         for sample in samples:
-            illumina_haplotype(sample, variant_positions, segment, min_quality, output_dir)
+            illumina_haplotype(sample, variant_positions, segment, segment_length, min_quality, output_dir)
             segment_length = len(sample.consensus[segment])
             for read in sample.reads:
                 if skip_read(read, segment, segment_length, variant_positions, quality_dir, sample):
@@ -231,7 +237,7 @@ def check_for_takeover(output_dir, segment, samples, sample_names, all_haplotype
                     continue
 
 
-def write_segment_haplotypes(sample, segment, haplotypes, variant_positions, illumina_dir, output_dir):
+def write_segment_haplotypes(sample, segment, haplotypes, variant_positions, illumina_dir, illumina_hap, output_dir):
     '''
     Produces the main output file (one per segment) with the haplotype lists
     '''
