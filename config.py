@@ -24,12 +24,14 @@ bino_filter = True
 min_snp_freq = 0.01
 # minimum allowed Illumina phred quality
 min_quality = 20
+# positions to manually exclude
+exclude_positions = [34]
 
 
 ### Samples of interest
 class Sample_Specs(object):
     def __init__(self):
-        self.samples = ["526"]
+        self.samples = ["ALL"]
         self.generation = []
         self.days = []
         self.prev_exposure_specific = []

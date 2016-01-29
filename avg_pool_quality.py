@@ -1,6 +1,5 @@
 import pysam
 import os
-import fnmatch
 import argparse
 import sys
 import csv

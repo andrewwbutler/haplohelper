@@ -13,7 +13,7 @@ import csv
 # ---------------------------------------------------------------------------------------------
 
 
-def gather_data(pacbio_dir, illumina_dir, illumina_bam_dir, consensus_dir, bino_filter, meta_data, samples, min_snp_freq):
+def gather_data(pacbio_dir, illumina_dir, illumina_bam_dir, consensus_dir, bino_filter, meta_data, samples, min_snp_freq, exclude_positions):
     '''
     This function will create a list of Sample objects from the list of sample IDs provided.
     See process_reads.py for description of Sample objects.
@@ -30,7 +30,7 @@ def gather_data(pacbio_dir, illumina_dir, illumina_bam_dir, consensus_dir, bino_
             sample_id = sample_id.split("_")[0]
         if sample_id not in samples:
             continue
-        snps = get_snps(illumina_snps, sample_id, bino_filter, min_snp_freq)
+        snps = get_snps(illumina_snps, sample_id, bino_filter, min_snp_freq, exclude_positions)
         if snps is None:
             print sample_id + " does not have an associated SNP list, skipping sample"
             continue
@@ -92,15 +92,14 @@ def find_haplotypes(samples, segments, quality_dir, illumina_dir, min_quality, o
         variant_positions = include_consensus_changes(samples, segment, variant_positions)
         variant_positions = sorted(variant_positions)
 
-
         with open(output_dir + "/" + segment + "_illumina_linkage_info.csv", "w") as outfile:
             writer = csv.writer(outfile, delimiter=",")
-            writer.writerow(["sample", "day", "segment", "haplotype", "count", "freq", "variant_position", "nt"])
-
+            writer.writerow(["sample", "day", "segment", "pb_haplotype", "pb_count", "il_haplotype", "il_count", "freq", "variant_position", "nt"])
 
         # recheck reads so that they cover all variant positions
         for sample in samples:
-            illumina_haplotype(sample, variant_positions, segment, segment_length, min_quality, output_dir)
+            if "Stock" not in sample.id:
+                illumina_haplotype(sample, variant_positions, segment, segment_length, min_quality, all_haplotypes[sample.id], output_dir)
             segment_length = len(sample.consensus[segment])
             for read in sample.reads:
                 if skip_read(read, segment, segment_length, variant_positions, quality_dir, sample):
@@ -237,7 +236,7 @@ def check_for_takeover(output_dir, segment, samples, sample_names, all_haplotype
                     continue
 
 
-def write_segment_haplotypes(sample, segment, haplotypes, variant_positions, illumina_dir, illumina_hap, output_dir):
+def write_segment_haplotypes(sample, segment, haplotypes, variant_positions, illumina_dir, output_dir):
     '''
     Produces the main output file (one per segment) with the haplotype lists
     '''
@@ -359,7 +358,7 @@ def main():
 
     setup_output_dir(config.output_dir)
     sample_ids = get_sample_ids(config.samples_to_compare, config.sample_meta_data)
-    samples = gather_data(config.pacbio_dir, config.illumina_dir, config.illumina_bam_dir, config.consensus_dir, config.bino_filter, config.barcode_meta_data, sample_ids, config.min_snp_freq)
+    samples = gather_data(config.pacbio_dir, config.illumina_dir, config.illumina_bam_dir, config.consensus_dir, config.bino_filter, config.barcode_meta_data, sample_ids, config.min_snp_freq, config.exclude_positions)
     segments = get_segments(samples, config.segments)
     find_haplotypes(samples, segments, config.quality_dir, config.illumina_dir, config.min_quality, config.output_dir)
 

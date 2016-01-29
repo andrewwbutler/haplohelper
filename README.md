@@ -7,7 +7,7 @@ A collection of scripts for determining the haplotype composition of viral popul
   * requires a directory with BAM files, the reference sequence, and a file containing pool info for each sample
 * avg_sample_quality.py - Calculates and records the average sample quality at each position in each segment
   * requires a directory with BAM files and the reference sequence
-* config.py - File that assigned the parameters required by pacbio_haplotype.py
+* config.py - File that assigns the parameters required by pacbio_haplotype.py
 * convert_consensus.py - converts consensus files so that each file is a sample with all segment consensus sequences
 * haplotype_visualization.R - script used to generate plots
   * Must manually set the segment (global variable at the top of the script)
