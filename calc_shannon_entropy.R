@@ -3,7 +3,7 @@ dir = "~/Projects/flu_project/illumina_snplists/"
 files = list.files(path = dir, pattern = ".csv")
 meta_data = read.csv("~/Projects/flu_project/metadata.csv")
 meta_data$Ferret.ID = as.character(meta_data$Ferret.ID)
-snp_cutoff = 0.03
+snp_cutoff = 0.01
 
 shannon_entropy = data.frame(sample = NA, day = NA, segment = NA, generation = NA, exposure = NA, exposure_type = NA, entropy = NA)
 
@@ -33,6 +33,10 @@ for(file in files){
 }
 
 shannon_entropy <- shannon_entropy[-1, ]
+
+# ----------------------------------------------------------------------------------------    
+# comparative analysis
+
 generations = c("F0", "F1")
 segments = c("HA", "MP",  "NA",  "NP",  "NS",  "PA",  "PB1", "PB2")
 for (seg in segments){
@@ -110,6 +114,8 @@ newRow = c(seg, gen, t_mean_naive, t_mean_pre, t_pvalue, tp_p1, tp_p2, tp_p3, tp
 relevant_info = rbind(relevant_info, newRow)
 
 relevant_info <- relevant_info[-1, ]
-write.csv(relevant_info, file = "~/Projects/flu_project/entropy_analysis.csv", row.names = FALSE)
+fname = paste("~/Projects/flu_project/entropy_analysis_", snp_cutoff, ".csv", sep="")
+write.csv(relevant_info, file = fname, row.names = FALSE)
 
-write.csv(shannon_entropy, file = "~/Projects/flu_project/entropy_analysis_0.03_full.csv", row.names = FALSE)
+fname = paste("~/Projects/flu_project/entropy_analysis_", snp_cutoff, "_full.csv", sep="")
+write.csv(shannon_entropy, file = fname, row.names = FALSE)
